@@ -8,7 +8,7 @@ I updated our pipeline for analyzing the cfDNA data – basically swapping out a
 - Mark dups with Biscuit
 - Call methylation with Methyldackel
 ## For BS and OxBS together:
--Bin methylation counts into 200bp windows (R)
+- Bin methylation counts into 200bp windows (R)
 - Run prop.test and subtraction to calculate 5hmc amount (R)
 - Overlap significant hits with gencode annotations (bedtools)
 
