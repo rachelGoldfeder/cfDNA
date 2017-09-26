@@ -21,8 +21,8 @@ email=${6:-'Rachel.Goldfeder@jax.org'} # Note, I removed the email doing anythin
 
 echo "
 #PBS -l nodes=1:ppn=12
-#PBS -l walltime=80:00:00
-#PBS -q long
+#PBS -l walltime=40:00:00
+#PBS -q batch
 #PBS -N align_bis_cfDNA_pipeline
 #PBS -V
 #PBS -m ae 
@@ -42,8 +42,8 @@ python  /projects/wei-lab/cfDNA/analysis/scripts/bwa-meth-master/bwameth.py  --t
 
 echo "
 #PBS -l nodes=1:ppn=12
-#PBS -l walltime=80:00:00
-#PBS -q long
+#PBS -l walltime=40:00:00
+#PBS -q batch
 #PBS -N align_oxbis_cfDNA_pipeline
 #PBS -V
 #PBS -m ae 
@@ -72,9 +72,9 @@ FIRST_oxbis=`qsub align.oxbis.sh`
 
 
 echo "
-#PBS -l nodes=1:ppn=1
-#PBS -l walltime=80:00:00
-#PBS -q long
+#PBS -l nodes=1:ppn=12
+#PBS -l walltime=10:00:00
+#PBS -q batch
 #PBS -N process_bis_cfDNA_pipeline
 #PBS -V
 #PBS -m ae 
@@ -88,9 +88,9 @@ module load R"  > process.bis.sh
 
 
 echo "
-#PBS -l nodes=1:ppn=1
-#PBS -l walltime=80:00:00
-#PBS -q long
+#PBS -l nodes=1:ppn=12
+#PBS -l walltime=10:00:00
+#PBS -q batch
 #PBS -N process_oxbis_cfDNA_pipeline
 #PBS -V
 #PBS -m ae 
@@ -108,7 +108,7 @@ samtools view -S -b $outPrefix.bis.sam > ${outPrefix}.bis.bam
 
 rm $outPrefix.bis.sam
 
-samtools sort ${outPrefix}.bis.bam > ${outPrefix}.bis.sort.bam
+samtools sort -@ 11 ${outPrefix}.bis.bam > ${outPrefix}.bis.sort.bam
 
 rm $outPrefix.bis.bam
 samtools index ${outPrefix}.bis.sort.bam
@@ -124,7 +124,7 @@ samtools view -S -b $outPrefix.oxbis.sam > ${outPrefix}.oxbis.bam
 
 rm $outPrefix.oxbis.sam
 
-samtools sort ${outPrefix}.oxbis.bam > ${outPrefix}.oxbis.sort.bam
+samtools sort -@ 11 ${outPrefix}.oxbis.bam > ${outPrefix}.oxbis.sort.bam
 
 rm $outPrefix.oxbis.bam
 samtools index ${outPrefix}.oxbis.sort.bam
@@ -147,8 +147,8 @@ SECOND_oxbis=`qsub -W depend=afterok:$FIRST_oxbis process.oxbis.sh`
 
 echo "
 #PBS -l nodes=1:ppn=1
-#PBS -l walltime=80:00:00
-#PBS -q long
+#PBS -l walltime=20:00:00
+#PBS -q batch
 #PBS -N markDups_bis_cfDNA_pipeline
 #PBS -V
 #PBS -m ae
@@ -163,8 +163,8 @@ module load R" > markDups.bis.sh
 
 echo "
 #PBS -l nodes=1:ppn=1
-#PBS -l walltime=80:00:00
-#PBS -q long
+#PBS -l walltime=20:00:00
+#PBS -q batch
 #PBS -N markDups_oxbis_cfDNA_pipeline
 #PBS -V
 #PBS -m ae
@@ -210,8 +210,8 @@ THIRD_oxbis=`qsub -W depend=afterok:$SECOND_oxbis markDups.oxbis.sh`
 
 echo "
 #PBS -l nodes=1:ppn=12
-#PBS -l walltime=80:00:00
-#PBS -q long
+#PBS -l walltime=4:00:00
+#PBS -q short
 #PBS -N callMeth_bis_cfDNA_pipeline
 #PBS -V
 #PBS -m ae
@@ -226,8 +226,8 @@ module load R" > callMeth.bis.sh
 
 echo "
 #PBS -l nodes=1:ppn=12
-#PBS -l walltime=80:00:00
-#PBS -q long
+#PBS -l walltime=4:00:00
+#PBS -q short
 #PBS -N callMeth_oxbis_cfDNA_pipeline
 #PBS -V
 #PBS -m ae
@@ -264,7 +264,7 @@ FOURTH_oxbis=`qsub -W depend=afterok:$THIRD_oxbis callMeth.oxbis.sh`
 
 
 
-ln -s ${outPrefix}.oxbis.sort.mDups_CpG.bedGraph bis.cpg.txt
+ln -s ${outPrefix}.bis.sort.mDups_CpG.bedGraph bis.cpg.txt
 ln -s ${outPrefix}.oxbis.sort.mDups_CpG.bedGraph oxbis.cpg.txt
 
 
@@ -283,8 +283,8 @@ FIFTH=`qsub -W depend=afterok:$FOURTH_bis:$FOURTH_oxbis /projects/wei-lab/cfDNA/
 
 echo "
 #PBS -l nodes=1:ppn=1
-#PBS -l walltime=80:00:00
-#PBS -q long
+#PBS -l walltime=4:00:00
+#PBS -q short
 #PBS -N calc5hmc_cfDNA_pipeline
 #PBS -V
 #PBS -m ae 
@@ -300,7 +300,7 @@ echo "Rscript /projects/wei-lab/cfDNA/skvortsova_2017/scripts/calc_5hmc_binned.R
 
 for i in `seq 1 1 22` X Y ; do echo  "cat significant.$i.csv | awk -F"," -v OFS=\"\t\" 'NR>1{print \$3,\$2,\$4,\$12}' | sort -k2,2n > ${outPrefix}.$i.sig.bed"; done >> calc5hmc.sh
 
-for i in `seq 1 1 22` X Y ; do echo "bedtools intersect  -a ${outPrefix}$i.sig.bed -b /projects/wei-lab/refs/h38/gencode.grch38.noChr.txt -wao > ${outPrefix}.$i.sig.gencode.bed"; done >> calc5hmc.sh
+for i in `seq 1 1 22` X Y ; do echo "bedtools intersect  -a ${outPrefix}.$i.sig.bed -b /projects/wei-lab/refs/h38/gencode.grch38.noChr.txt -wao > ${outPrefix}.$i.sig.gencode.bed"; done >> calc5hmc.sh
 
 
 
