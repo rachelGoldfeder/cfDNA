@@ -298,9 +298,9 @@ module load R" > calc5hmc.sh
 echo "Rscript /projects/wei-lab/cfDNA/skvortsova_2017/scripts/calc_5hmc_binned.R" >> calc5hmc.sh
 
 
-for i in `seq 1 1 22` X Y ; do echo  "cat significant.$i.csv | awk -F"," -v OFS=\"\t\" 'NR>1{print \$3,\$2,\$4,\$12}' | sort -k2,2n > ${outPrefix}.$i.sig.bed"; done >> calc5hmc.sh
+for i in `seq 1 1 22` X Y ; do echo  "cat confident.$i.csv | awk -F"," -v OFS=\"\t\" 'NR>1{print \$3,\$2,\$4,\$12}' | sort -k2,2n > ${outPrefix}.$i.conf.bed"; done >> calc5hmc.sh
 
-for i in `seq 1 1 22` X Y ; do echo "bedtools intersect  -a ${outPrefix}.$i.sig.bed -b /projects/wei-lab/refs/h38/gencode.grch38.noChr.txt -wao > ${outPrefix}.$i.sig.gencode.bed"; done >> calc5hmc.sh
+for i in `seq 1 1 22` X Y ; do echo "bedtools intersect  -a ${outPrefix}.$i.conf.bed -b /projects/wei-lab/refs/h38/gencode.grch38.noChr.txt -wao > ${outPrefix}.$i.conf.gencode.bed"; done >> calc5hmc.sh
 
 
 
