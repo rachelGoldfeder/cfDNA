@@ -211,7 +211,7 @@ THIRD_oxbis=`qsub -W depend=afterok:$SECOND_oxbis markDups.oxbis.sh`
 echo "
 #PBS -l nodes=1:ppn=12
 #PBS -l walltime=4:00:00
-#PBS -q short
+#PBS -q batch
 #PBS -N callMeth_bis_cfDNA_pipeline
 #PBS -V
 #PBS -m ae
@@ -227,7 +227,7 @@ module load R" > callMeth.bis.sh
 echo "
 #PBS -l nodes=1:ppn=12
 #PBS -l walltime=4:00:00
-#PBS -q short
+#PBS -q batch
 #PBS -N callMeth_oxbis_cfDNA_pipeline
 #PBS -V
 #PBS -m ae
@@ -284,7 +284,7 @@ FIFTH=`qsub -W depend=afterok:$FOURTH_bis:$FOURTH_oxbis /projects/wei-lab/cfDNA/
 echo "
 #PBS -l nodes=1:ppn=1
 #PBS -l walltime=4:00:00
-#PBS -q short
+#PBS -q batch
 #PBS -N calc5hmc_cfDNA_pipeline
 #PBS -V
 #PBS -m ae 
@@ -298,10 +298,11 @@ module load R" > calc5hmc.sh
 echo "Rscript /projects/wei-lab/cfDNA/skvortsova_2017/scripts/calc_5hmc_binned.R" >> calc5hmc.sh
 
 
-for i in `seq 1 1 22` X Y ; do echo  "cat confident.$i.csv | awk -F"," -v OFS=\"\t\" 'NR>1{print \$3,\$2,\$4,\$12}' | sort -k2,2n > ${outPrefix}.$i.conf.bed"; done >> calc5hmc.sh
+for i in `seq 1 1 22` X Y ; do echo  "cat confident.$i.csv | awk -F"," -v OFS=\"\t\" 'NR>1{print \$3,\$2,\$4,\$12,\$5,\$6,\$9,\$10}' | sort -k2,2n > ${outPrefix}.$i.conf.bed"; done >> calc5hmc.sh
 
 for i in `seq 1 1 22` X Y ; do echo "bedtools intersect  -a ${outPrefix}.$i.conf.bed -b /projects/wei-lab/refs/h38/gencode.grch38.noChr.txt -wao > ${outPrefix}.$i.conf.gencode.bed"; done >> calc5hmc.sh
 
+for i in `seq 1 1 22` X Y ; do echo "bedtools intersect  -a ${outPrefix}.$i.conf.gencode.bed -b /projects/wei-lab/refs/h38/featureType_regulatoryFeatures.bed -wao > ${outPrefix}.$i.conf.gencode.regFeatures.bed"; done >> calc5hmc.sh
 
 
 
