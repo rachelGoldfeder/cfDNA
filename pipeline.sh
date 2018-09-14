@@ -11,7 +11,7 @@ oxbis_fq1=$3
 oxbis_fq2=$4
 outPrefix=$5
 enhancer=$6
-STEP=${7:=1} # if you don't provide a step, it will start from the beginning, steps are listed below:
+STEP=${7:-1} # if you don't provide a step, it will start from the beginning, steps are listed below:
 
 # 1. Align reads with BWA-Meth
 # 2. Process Aligned Reads & QC
@@ -22,14 +22,33 @@ STEP=${7:=1} # if you don't provide a step, it will start from the beginning, st
 # 7. Calculate 5hmc based on statistically significantly different bins
 # 8. Creating meth_calls dir and making plots
 
- 
-
 
 #####################################################
 # 1. Align reads with BWA-Meth
 #####################################################
-echo $STEP
+echo "
+#PBS -l nodes=1:ppn=12
+#PBS -l walltime=40:00:00
+#PBS -q batch
+#PBS -N sleep
+#PBS -V
+#PBS -m ae 
+cd \$PBS_O_WORKDIR
 
+sleep 1" > sleep.sh
+
+FIRST_bis=`qsub sleep.sh`
+FIRST_oxbis=`qsub sleep.sh`
+SECOND_bis=`qsub sleep.sh`
+SECOND_oxbis=`qsub sleep.sh`
+THIRD_bis=`qsub sleep.sh`
+THIRD_oxbis=`qsub sleep.sh`
+FOURTH_bis=`qsub sleep.sh`
+FOURTH_oxbis=`qsub sleep.sh`
+FOURTH_bis_1=`qsub sleep.sh`
+FOURTH_oxbis_1=`qsub sleep.sh`
+FIFTH=`qsub sleep.sh`
+SIXTH=`qsub sleep.sh`
 
 
 if [ "$STEP" -lt "2" ]; then
@@ -274,11 +293,8 @@ echo "
 /projects/wei-lab/cfDNA/analysis/scripts/MethylDackel extract --CHH  --noCpG -@ 12  /projects/wei-lab/refs/h38/primaryAssembly/Homo_sapiens.GRCh38.dna.primary_assembly.fa  ${outPrefix}.oxbis.sort.mDups.bam 
 " >> callMeth.oxbis.sh
 
-
-
 FOURTH_bis_1=`qsub -W depend=afterok:$THIRD_bis callMeth.bis.sh`
 FOURTH_oxbis_1=`qsub -W depend=afterok:$THIRD_oxbis callMeth.oxbis.sh`
-
 fi
 
 #####################################################
