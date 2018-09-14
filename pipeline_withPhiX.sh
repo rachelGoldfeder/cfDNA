@@ -10,29 +10,14 @@ bis_fq2=$2
 oxbis_fq1=$3
 oxbis_fq2=$4
 outPrefix=$5
-enhancer=$6
-STEP=${7:=1} # if you don't provide a step, it will start from the beginning, steps are listed below:
+email=${6:-'Rachel.Goldfeder@jax.org'} # Note, I removed the email doing anything - it now will just send the email to the submitter of the job. I'm leaving this here to catch the argument in case it is supplied
 
-# 1. Align reads with BWA-Meth
-# 2. Process Aligned Reads & QC
-# 3. Mark duplicates with biscuit & QC
-# 4. Call methylation with MethylDackel
-# 5. Check for c and g to both have coverage
-# 6. Bin all calls in 200 bp windows
-# 7. Calculate 5hmc based on statistically significantly different bins
-# 8. Creating meth_calls dir and making plots
-
- 
 
 
 #####################################################
 # 1. Align reads with BWA-Meth
 #####################################################
-echo $STEP
 
-
-
-if [ "$STEP" -lt "2" ]; then
 
 echo "
 #PBS -l nodes=1:ppn=12
@@ -51,7 +36,7 @@ module load R" > align.bis.sh
 
 echo "
 ##bis
-python  /projects/wei-lab/cfDNA/analysis/scripts/bwa-meth-master/bwameth.py  --threads 12 --reference /projects/wei-lab/refs/h38/primaryAssembly/Homo_sapiens.GRCh38.dna.primary_assembly.fa $bis_fq1 $bis_fq2 > $outPrefix.bis.sam
+python  /projects/wei-lab/cfDNA/analysis/scripts/bwa-meth-master/bwameth.py  --threads 12 --reference /projects/wei-lab/refs/h38/primaryAssembly/Homo_sapiens.GRCh38.dna.primary_assembly.withPhiX.fa $bis_fq1 $bis_fq2 > $outPrefix.bis.sam
 " >> align.bis.sh
 
 
@@ -71,7 +56,7 @@ module load R" > align.oxbis.sh
 
 echo "
 ## oxbis
-python  /projects/wei-lab/cfDNA/analysis/scripts/bwa-meth-master/bwameth.py  --threads 12 --reference /projects/wei-lab/refs/h38/primaryAssembly/Homo_sapiens.GRCh38.dna.primary_assembly.fa $oxbis_fq1 $oxbis_fq2 > $outPrefix.oxbis.sam
+python  /projects/wei-lab/cfDNA/analysis/scripts/bwa-meth-master/bwameth.py  --threads 12 --reference /projects/wei-lab/refs/h38/primaryAssembly/Homo_sapiens.GRCh38.dna.primary_assembly.withPhiX.fa $oxbis_fq1 $oxbis_fq2 > $outPrefix.oxbis.sam
 " >> align.oxbis.sh
 
 
@@ -79,13 +64,12 @@ python  /projects/wei-lab/cfDNA/analysis/scripts/bwa-meth-master/bwameth.py  --t
 
 FIRST_bis=`qsub align.bis.sh`
 FIRST_oxbis=`qsub align.oxbis.sh`
-fi
+
 
 #####################################################
-# 2. Process Aligned Reads & QC
+# 1.5 Process Aligned Reads & QC
 #####################################################
 
-if [ "$STEP" -lt "3" ]; then
 
 echo "
 #PBS -l nodes=1:ppn=12
@@ -155,13 +139,11 @@ samtools flagstat ${outPrefix}.oxbis.sort.bam > ${outPrefix}.oxbis.flagstat
 SECOND_bis=`qsub -W depend=afterok:$FIRST_bis process.bis.sh`
 SECOND_oxbis=`qsub -W depend=afterok:$FIRST_oxbis process.oxbis.sh`
 
-fi
+
 
 ####################################################
-# 3. Mark duplicates with biscuit & QC
+# 2. Mark duplicates with biscuit & QC
 #####################################################
-
-if [ "$STEP" -lt "4" ]; then
 
 echo "
 #PBS -l nodes=1:ppn=1
@@ -171,7 +153,7 @@ echo "
 #PBS -V
 #PBS -m ae
 cd \$PBS_O_WORKDIR
-module load bwa.7.12
+module load bwa/0.7.12
 module load samtools
 module load python/2.7.3
 module load bedtools/2.17.0
@@ -217,15 +199,14 @@ THIRD_bis=`qsub -W depend=afterok:$SECOND_bis markDups.bis.sh`
 THIRD_oxbis=`qsub -W depend=afterok:$SECOND_oxbis markDups.oxbis.sh`
 
 
-fi
+
 
 
 #####################################################
-# 4. Call methylation with MethylDackel
+# 3. Call methylation with MethylDackel
 # MethylDackel extract
 #####################################################
 
-if [ "$STEP" -lt "5" ]; then
 
 echo "
 #PBS -l nodes=1:ppn=12
@@ -261,46 +242,25 @@ module load R" > callMeth.oxbis.sh
 echo "
 
 ##bis
-/projects/wei-lab/cfDNA/analysis/scripts/MethylDackel extract -l  /projects/wei-lab/refs/h38/primaryAssembly/Homo_sapiens.GRCh38.dna.primary_assembly.fa.allcpg_parsed.bed -@ 12  /projects/wei-lab/refs/h38/primaryAssembly/Homo_sapiens.GRCh38.dna.primary_assembly.fa  ${outPrefix}.bis.sort.mDups.bam
-
-/projects/wei-lab/cfDNA/analysis/scripts/MethylDackel extract --CHH --noCpG -@ 12  /projects/wei-lab/refs/h38/primaryAssembly/Homo_sapiens.GRCh38.dna.primary_assembly.fa  ${outPrefix}.bis.sort.mDups.bam 
+/projects/wei-lab/cfDNA/analysis/scripts/MethylDackel extract -l  /projects/wei-lab/refs/h38/primaryAssembly/Homo_sapiens.GRCh38.dna.primary_assembly.fa.allcpg_parsed.bed -@ 12  /projects/wei-lab/refs/h38/primaryAssembly/Homo_sapiens.GRCh38.dna.primary_assembly.withPhiX.fa  ${outPrefix}.bis.sort.mDups.bam
 " >> callMeth.bis.sh
 
 
 echo "
 ##oxbis
-/projects/wei-lab/cfDNA/analysis/scripts/MethylDackel extract  -l  /projects/wei-lab/refs/h38/primaryAssembly/Homo_sapiens.GRCh38.dna.primary_assembly.fa.allcpg_parsed.bed -@ 12  /projects/wei-lab/refs/h38/primaryAssembly/Homo_sapiens.GRCh38.dna.primary_assembly.fa  ${outPrefix}.oxbis.sort.mDups.bam 
-
-/projects/wei-lab/cfDNA/analysis/scripts/MethylDackel extract --CHH  --noCpG -@ 12  /projects/wei-lab/refs/h38/primaryAssembly/Homo_sapiens.GRCh38.dna.primary_assembly.fa  ${outPrefix}.oxbis.sort.mDups.bam 
+/projects/wei-lab/cfDNA/analysis/scripts/MethylDackel extract -l  /projects/wei-lab/refs/h38/primaryAssembly/Homo_sapiens.GRCh38.dna.primary_assembly.fa.allcpg_parsed.bed -@ 12  /projects/wei-lab/refs/h38/primaryAssembly/Homo_sapiens.GRCh38.dna.primary_assembly.withPhiX.fa  ${outPrefix}.oxbis.sort.mDups.bam 
 " >> callMeth.oxbis.sh
 
 
 
-FOURTH_bis_1=`qsub -W depend=afterok:$THIRD_bis callMeth.bis.sh`
-FOURTH_oxbis_1=`qsub -W depend=afterok:$THIRD_oxbis callMeth.oxbis.sh`
+FOURTH_bis=`qsub -W depend=afterok:$THIRD_bis callMeth.bis.sh`
+FOURTH_oxbis=`qsub -W depend=afterok:$THIRD_oxbis callMeth.oxbis.sh`
 
-fi
+
 
 #####################################################
-# 5. Check for c and g to both have coverage
+# 4. Bin all calls in 200 bp windows
 #####################################################
-
-
-if [ "$STEP" -lt "6" ]; then
-
-
-
-sh /projects/wei-lab/cfDNA/analysis/scripts/cover_CandG.sh ${outPrefix}.bis.sort.mDups_CpG.bedGraph 
-FOURTH_bis=`qsub -W depend=afterok:$FOURTH_bis_1 ${outPrefix}.bis.sort.mDups_CpG.bedGraph.CpG.sh`
-sh /projects/wei-lab/cfDNA/analysis/scripts/cover_CandG.sh ${outPrefix}.oxbis.sort.mDups_CpG.bedGraph
-FOURTH_oxbis=`qsub -W depend=afterok:$FOURTH_oxbis_1 ${outPrefix}.oxbis.sort.mDups_CpG.bedGraph.CpG.sh`
-
-fi
-
-#####################################################
-# 6. Bin all calls in 200 bp windows
-#####################################################
-if [ "$STEP" -lt "7" ]; then
 
 
 
@@ -313,15 +273,13 @@ ln -s ${outPrefix}.oxbis.sort.mDups_CpG.bedGraph oxbis.cpg.txt
 FIFTH=`qsub -W depend=afterok:$FOURTH_bis:$FOURTH_oxbis /projects/wei-lab/cfDNA/skvortsova_2017/scripts/binning.sh`
 
 
-fi
+
 
 
 
 #####################################################
-# 7. Calculate 5hmc based on statistically significantly different bins
+# 5. Calculate 5hmc based on statistically significantly different bins
 #####################################################
-
-if [ "$STEP" -lt "8" ]; then
 
 echo "
 #PBS -l nodes=1:ppn=1
@@ -342,27 +300,12 @@ echo "Rscript /projects/wei-lab/cfDNA/skvortsova_2017/scripts/calc_5hmc_binned.R
 
 for i in `seq 1 1 22` X Y ; do echo  "cat confident.$i.csv | awk -F"," -v OFS=\"\t\" 'NR>1{print \$3,\$2,\$4,\$12,\$5,\$6,\$9,\$10}' | sed 's/\"//g' | sort -k2,2n > ${outPrefix}.$i.conf.bed"; done >> calc5hmc.sh
 
-#for i in `seq 1 1 22` X Y ; do echo "bedtools intersect  -a ${outPrefix}.$i.conf.bed -b /projects/wei-lab/refs/h38/gencode.grch38.noChr.txt -wao > ${outPrefix}.$i.conf.gencode.bed"; done >> calc5hmc.sh
+for i in `seq 1 1 22` X Y ; do echo "bedtools intersect  -a ${outPrefix}.$i.conf.bed -b /projects/wei-lab/refs/h38/gencode.grch38.noChr.txt -wao > ${outPrefix}.$i.conf.gencode.bed"; done >> calc5hmc.sh
 
-#for i in `seq 1 1 22` X Y ; do echo "bedtools intersect  -a ${outPrefix}.$i.conf.gencode.bed -b /projects/wei-lab/refs/h38/featureType_regulatoryFeatures.bed -wao > ${outPrefix}.$i.conf.gencode.regFeatures.bed"; done >> calc5hmc.sh
+for i in `seq 1 1 22` X Y ; do echo "bedtools intersect  -a ${outPrefix}.$i.conf.gencode.bed -b /projects/wei-lab/refs/h38/featureType_regulatoryFeatures.bed -wao > ${outPrefix}.$i.conf.gencode.regFeatures.bed"; done >> calc5hmc.sh
 
 
 
 SIXTH=`qsub -W depend=afterok:$FIFTH calc5hmc.sh`
-fi
-#####################################################
-# 8. Creating meth_calls dir and making plots
-#####################################################
-if [ "$STEP" -lt "9" ]; then
-
-mkdir ../meth_calls
-sampleDir=$PWD
-cd ../meth_calls
 
 
-sh /projects/wei-lab/cfDNA/analysis/scripts/meth.plot.sh $sampleDir $outPrefix 5 $enhancer 
-
-
-qsub -W depend=afterok:$SIXTH $outPrefix.run.sh
-
-fi
