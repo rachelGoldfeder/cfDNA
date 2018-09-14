@@ -10,7 +10,8 @@ I updated our pipeline for analyzing the cfDNA data – basically swapping out a
 ## For BS and OxBS together:
 - Bin methylation counts into 200bp windows (R)
 - Run prop.test and subtraction to calculate 5hmc amount (R)
-- Overlap significant hits with gencode annotations (bedtools)
+- Overlap significant hits with gencode annotations (bedtools) and enhancer regions
+- Create relevant plots (R)
 
 
 The pipeline qsubs the jobs individually for each one of these tasks (which each wait to run until the previous step completes) – and runs a separate job for BS-seq and OxBS-seq, so everything is parallelized and overall it runs pretty quickly.
@@ -21,11 +22,11 @@ On Helix, the pipeline is located here:
 
 To run it, the syntax is:
 
-sh /projects/wei-lab/cfDNA/analysis/scripts/pipeline.sh <bis_fastq1_name.fq.gz> <bis_fastq2_name.fq.gz> <oxbis_fastq1_name.fq.gz> <oxbis_fastq2_name.fq.gz> <outFilePrefix>
+sh /projects/wei-lab/cfDNA/analysis/scripts/pipeline.sh <bis_fastq1_name.fq.gz> <bis_fastq2_name.fq.gz> <oxbis_fastq1_name.fq.gz> <oxbis_fastq2_name.fq.gz> <outFilePrefix> <location of enhancer file> [OPTIONAL: step to start on]
 
 Example:
 
-sh /projects/wei-lab/cfDNA/analysis/scripts/pipeline.sh Adult_Brain_Bis_1.fastq.gz.2M Adult_Brain_Bis_2.fastq.gz.2M Adult_Brain_OxBis_1.fastq.gz.2M Adult_Brain_OxBis_2.fastq.gz.2M adult_brain_test
+sh /projects/wei-lab/cfDNA/analysis/scripts/pipeline.sh Adult_Brain_Bis_1.fastq.gz.2M Adult_Brain_Bis_2.fastq.gz.2M Adult_Brain_OxBis_1.fastq.gz.2M Adult_Brain_OxBis_2.fastq.gz.2M adult_brain_test /path/to/enhancerFile 1
 
 
 I’d recommend running the pipeline in the same directory as your fastq files, so that you can just use their names (rather than full path) and the output files will also be placed in this same dir. One easy way to do this without moving lots of files around is just to create the new dir you want to work in and then link your fastq files in. For example:
