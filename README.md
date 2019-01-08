@@ -1,6 +1,6 @@
 # cfDNA
 
-I updated our pipeline for analyzing the cfDNA data – basically swapping out all of our old steps (trimgalore, bismark, various reference genomes, etc) for the new steps:
+This pipeline performs the following steps:
 
 ## For BS and OxBS separately:
 - Align reads with BWA-Meth to Grch38-Primary Assembly
@@ -8,9 +8,7 @@ I updated our pipeline for analyzing the cfDNA data – basically swapping out a
 - Mark dups with Biscuit
 - Call methylation with Methyldackel
 ## For BS and OxBS together:
-- Bin methylation counts into 200bp windows (R)
 - Run prop.test and subtraction to calculate 5hmc amount (R)
-- Overlap significant hits with gencode annotations (bedtools) and enhancer regions
 - Create relevant plots (R)
 
 
@@ -22,11 +20,11 @@ On Helix, the pipeline is located here:
 
 To run it, the syntax is:
 
-sh /projects/wei-lab/cfDNA/analysis/scripts/pipeline.sh <bis_fastq1_name.fq.gz> <bis_fastq2_name.fq.gz> <oxbis_fastq1_name.fq.gz> <oxbis_fastq2_name.fq.gz> <outFilePrefix> <location of enhancer file> [OPTIONAL: step to start on]
+sh /projects/wei-lab/cfDNA/analysis/scripts/pipeline.sh <bis_fastq1_name.fq.gz> <bis_fastq2_name.fq.gz> <oxbis_fastq1_name.fq.gz> <oxbis_fastq2_name.fq.gz> <outFilePrefix>  [OPTIONAL: step to start on]
 
 Example:
 
-sh /projects/wei-lab/cfDNA/analysis/scripts/pipeline.sh Adult_Brain_Bis_1.fastq.gz.2M Adult_Brain_Bis_2.fastq.gz.2M Adult_Brain_OxBis_1.fastq.gz.2M Adult_Brain_OxBis_2.fastq.gz.2M adult_brain_test /path/to/enhancerFile 1
+sh /projects/wei-lab/cfDNA/analysis/scripts/pipeline.sh Adult_Brain_Bis_1.fastq.gz.2M Adult_Brain_Bis_2.fastq.gz.2M Adult_Brain_OxBis_1.fastq.gz.2M Adult_Brain_OxBis_2.fastq.gz.2M adult_brain_test  1
 
 
 I’d recommend running the pipeline in the same directory as your fastq files, so that you can just use their names (rather than full path) and the output files will also be placed in this same dir. One easy way to do this without moving lots of files around is just to create the new dir you want to work in and then link your fastq files in. For example:
