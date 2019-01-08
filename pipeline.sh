@@ -16,7 +16,7 @@ STEP=${7:-1} # if you don't provide a step, it will start from the beginning, st
 # 1. Align reads with BWA-Meth
 # 2. Process Aligned Reads & QC
 # 3. Mark duplicates with biscuit & QC
-# 4. Call methylation with MethylDackel
+# 4. Call methylation with MethylDackel and conversion rate
 # 5. Check for c and g to both have coverage
 # 6. Bin all calls in 200 bp windows
 # 7. Calculate 5hmc based on statistically significantly different bins
@@ -27,12 +27,11 @@ STEP=${7:-1} # if you don't provide a step, it will start from the beginning, st
 # 1. Align reads with BWA-Meth
 #####################################################
 echo "
-#PBS -l nodes=1:ppn=12
+#PBS -l nodes=1:ppn=1
 #PBS -l walltime=40:00:00
 #PBS -q batch
 #PBS -N sleep
 #PBS -V
-#PBS -m ae 
 cd \$PBS_O_WORKDIR
 
 sleep 1" > sleep.sh
@@ -55,7 +54,7 @@ if [ "$STEP" -lt "2" ]; then
 
 echo "
 #PBS -l nodes=1:ppn=12
-#PBS -l walltime=40:00:00
+#PBS -l walltime=60:00:00
 #PBS -q batch
 #PBS -N align_bis_cfDNA_pipeline
 #PBS -V
@@ -76,7 +75,7 @@ python  /projects/wei-lab/cfDNA/analysis/scripts/bwa-meth-master/bwameth.py  --t
 
 echo "
 #PBS -l nodes=1:ppn=12
-#PBS -l walltime=40:00:00
+#PBS -l walltime=60:00:00
 #PBS -q batch
 #PBS -N align_oxbis_cfDNA_pipeline
 #PBS -V
@@ -218,7 +217,7 @@ echo "
 ##bis
 /projects/wei-lab/cfDNA/analysis/scripts/biscuit-release/biscuit markdup ${outPrefix}.bis.sort.bam  ${outPrefix}.bis.mDups.bam
 samtools sort ${outPrefix}.bis.mDups.bam > ${outPrefix}.bis.sort.mDups.bam
-
+rm ${outPrefix}.bis.mDups.bam
 
 samtools flagstat ${outPrefix}.bis.sort.mDups.bam > ${outPrefix}.bis.mdups.flagstat
 " >>markDups.bis.sh
@@ -227,6 +226,7 @@ echo "
 ##oxbis
 /projects/wei-lab/cfDNA/analysis/scripts/biscuit-release/biscuit markdup ${outPrefix}.oxbis.sort.bam  ${outPrefix}.oxbis.mDups.bam
 samtools sort ${outPrefix}.oxbis.mDups.bam > ${outPrefix}.oxbis.sort.mDups.bam
+rm ${outPrefix}.oxbis.mDups.bam 
 
 samtools flagstat ${outPrefix}.oxbis.sort.mDups.bam > ${outPrefix}.oxbis.mdups.flagstat
 " >> markDups.oxbis.sh
@@ -295,6 +295,12 @@ echo "
 
 FOURTH_bis_1=`qsub -W depend=afterok:$THIRD_bis callMeth.bis.sh`
 FOURTH_oxbis_1=`qsub -W depend=afterok:$THIRD_oxbis callMeth.oxbis.sh`
+
+
+sh /projects/wei-lab/cfDNA/analysis/scripts/run.tabulateConversionRate.sh ${outPrefix}
+qsub -W depend=afterok:$FOURTH_bis_1:$FOURTH_oxbis_1 ${outPrefix}.run.tabulateConversionRate.sh
+
+
 fi
 
 #####################################################
@@ -320,8 +326,8 @@ if [ "$STEP" -lt "7" ]; then
 
 
 
-ln -s ${outPrefix}.bis.sort.mDups_CpG.bedGraph bis.cpg.txt
-ln -s ${outPrefix}.oxbis.sort.mDups_CpG.bedGraph oxbis.cpg.txt
+ln -s ${outPrefix}.bis.sort.mDups_CpG.bedGraph.CpG.txt bis.cpg.txt
+ln -s ${outPrefix}.oxbis.sort.mDups_CpG.bedGraph.CpG.txt oxbis.cpg.txt
 
 
 
@@ -358,10 +364,12 @@ echo "Rscript /projects/wei-lab/cfDNA/skvortsova_2017/scripts/calc_5hmc_binned.R
 
 for i in `seq 1 1 22` X Y ; do echo  "cat confident.$i.csv | awk -F"," -v OFS=\"\t\" 'NR>1{print \$3,\$2,\$4,\$12,\$5,\$6,\$9,\$10}' | sed 's/\"//g' | sort -k2,2n > ${outPrefix}.$i.conf.bed"; done >> calc5hmc.sh
 
+echo "rm confident.*.csv >> calc5hmc.sh"
+
+
 #for i in `seq 1 1 22` X Y ; do echo "bedtools intersect  -a ${outPrefix}.$i.conf.bed -b /projects/wei-lab/refs/h38/gencode.grch38.noChr.txt -wao > ${outPrefix}.$i.conf.gencode.bed"; done >> calc5hmc.sh
 
 #for i in `seq 1 1 22` X Y ; do echo "bedtools intersect  -a ${outPrefix}.$i.conf.gencode.bed -b /projects/wei-lab/refs/h38/featureType_regulatoryFeatures.bed -wao > ${outPrefix}.$i.conf.gencode.regFeatures.bed"; done >> calc5hmc.sh
-
 
 
 SIXTH=`qsub -W depend=afterok:$FIFTH calc5hmc.sh`
