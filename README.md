@@ -29,17 +29,17 @@ sh /projects/wei-lab/cfDNA/analysis/scripts/pipeline.sh Adult_Brain_Bis_1.fastq.
 
 I’d recommend running the pipeline in the same directory as your fastq files, so that you can just use their names (rather than full path) and the output files will also be placed in this same dir. One easy way to do this without moving lots of files around is just to create the new dir you want to work in and then link your fastq files in. For example:
 
-- make and change to new dir
+####make and change to new dir
 mkdir bladderCa_lane1
 cd bladderCa_lane1
 
-- link in fq files
+####link in fq files
 ln –s /path/to/bis_fq1.gz .
 ln –s /path/to/bis_fq2.gz .
 ln –s /path/to/oxbis_fq1.gz .
 ln –s /path/to/oxbis_fq2.gz .
 
-- run the pipeline!
+####run the pipeline!
 sh /projects/wei-lab/cfDNA/analysis/scripts/pipeline.sh bis_fq1.gz bis_fq2.gz oxbis_fq1.gz oxbis_fq2.gz bladderCa_results
 
 If you run a qstat, you should see that the alignment jobs immediately start running (or are queued), and the rest of the jobs are in state “H” for holding.
